@@ -147,30 +147,102 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         reusableBall?.isEnabled = false
         print("Cleared reusable ball (hidden)")
     }
-    
+
+    private var lastClone: ModelEntity? = nil
+    private var dynamicLine: ModelEntity? = nil
+    private var dynamicLineAnchor: AnchorEntity? = nil
+
     @objc
     func handleTap(_ sender: UITapGestureRecognizer) {
         guard let ball = reusableBall else { return }
-
         let worldPos = ball.position(relativeTo: nil)
 
+        // Place new clone
         let clone = ModelEntity(mesh: .generateSphere(radius: 0.02),
                                 materials: [SimpleMaterial(color: .red, isMetallic: false)])
-        let line = ModelEntity(mesh: .generateBox(size: [0.002, 0.002, 0.002]),
-                               materials: [SimpleMaterial(color: .blue, isMetallic: false)])
-
-        let anchor = AnchorEntity(world: worldPos)
-
-        // Important: positions are local to the anchor
+        let cloneAnchor = AnchorEntity(world: worldPos)
         clone.position = .zero
+        cloneAnchor.addChild(clone)
+        arView.scene.addAnchor(cloneAnchor)
+
+        // Draw a static line between lastClone and this new clone
+        if let previous = lastClone {
+            let start = previous.position(relativeTo: nil)
+            let end = worldPos
+            addStaticLine(from: start, to: end)
+        }
+
+        // Update last clone
+        lastClone = clone
+    }
+
+    private func addStaticLine(from start: SIMD3<Float>, to end: SIMD3<Float>) {
+        let direction = end - start
+        let distance = length(direction)
+        let midPoint = (start + end) / 2
+
+        // Box is aligned along Y by default
+        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004])
+        let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
+
+        let lineAnchor = AnchorEntity(world: midPoint)
+        line.position = .zero // relative to midpoint
+
+        // Quaternion to rotate Y-axis to the direction vector
+        let up = SIMD3<Float>(0, 1, 0)
+        let dir = normalize(direction)
+        if abs(dot(up, dir)) < 0.999 { // avoid NaN when parallel
+            let axis = cross(up, dir)
+            let angle = acos(dot(up, dir))
+            line.orientation = simd_quatf(angle: angle, axis: normalize(axis))
+        }
+
+        lineAnchor.addChild(line)
+        arView.scene.addAnchor(lineAnchor)
+    }
+
+    private func updateDynamicLine() {
+        guard let last = lastClone,
+              let ball = reusableBall else { return }
+
+        let start = ball.position(relativeTo: nil)
+        let end = last.position(relativeTo: nil)
+        let direction = end - start
+        let distance = length(direction)
+        let midPoint = (start + end) / 2
+
+        // Remove old line and anchor if they exist
+        if let anchor = dynamicLineAnchor {
+            arView.scene.removeAnchor(anchor)
+            dynamicLineAnchor = nil
+            dynamicLine = nil
+        }
+
+        // Create fresh anchor + line at correct midpoint each frame
+        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004]) // Y-axis is the long axis
+        let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .green, isMetallic: false)])
         line.position = .zero
 
-        anchor.addChild(clone)
+        // Rotate Y-axis to match direction
+        let up = SIMD3<Float>(0, 1, 0)
+        let dir = normalize(direction)
+        if abs(dot(up, dir)) < 0.999 {
+            let axis = normalize(cross(up, dir))
+            let dotValue = max(min(dot(up, dir), 1.0), -1.0)
+            let angle = acos(dotValue)
+            line.orientation = simd_quatf(angle: angle, axis: axis)
+        }
+
+        // Anchor at midpoint and add
+        let anchor = AnchorEntity(world: midPoint)
         anchor.addChild(line)
         arView.scene.addAnchor(anchor)
 
-        clones.append(CloneLink(clone: clone, line: line))
+        dynamicLineAnchor = anchor
+        dynamicLine = line
     }
+
+
     
     private func performAutomaticRaycast() {
         guard let ball = reusableBall else { return }
@@ -191,6 +263,7 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
 
         // Update all lines to stretch to the moving ball
         updateLines(to: ballPosition)
+        updateDynamicLine()
     }
     
     private func createLine(from start: SIMD3<Float>, to end: SIMD3<Float>, attachTo anchor: AnchorEntity) {
