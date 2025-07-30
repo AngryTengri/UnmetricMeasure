@@ -181,23 +181,47 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let distance = length(direction)
         let midPoint = (start + end) / 2
 
-        // Box is aligned along Y by default
-        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004])
+        // Line entity
+        let lineMesh = MeshResource.generateBox(size: [0.002, distance, 0.002]) // Y-axis is length
         let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
+        line.position = .zero
 
+        // Anchor for line and text
         let lineAnchor = AnchorEntity(world: midPoint)
-        line.position = .zero // relative to midpoint
 
-        // Quaternion to rotate Y-axis to the direction vector
+        // Rotate line Y-axis → direction
         let up = SIMD3<Float>(0, 1, 0)
         let dir = normalize(direction)
-        if abs(dot(up, dir)) < 0.999 { // avoid NaN when parallel
-            let axis = cross(up, dir)
-            let angle = acos(dot(up, dir))
-            line.orientation = simd_quatf(angle: angle, axis: normalize(axis))
+        if abs(dot(up, dir)) < 0.999 {
+            let axis = normalize(cross(up, dir))
+            let angle = acos(max(min(dot(up, dir), 1.0), -1.0))
+            line.orientation = simd_quatf(angle: angle, axis: axis)
         }
 
+        // Add line
         lineAnchor.addChild(line)
+
+        // Text: create at midpoint and lift slightly upward (world offset)
+        let text = String(format: "%.2f m", distance)
+        let textMesh = MeshResource.generateText(
+            text,
+            extrusionDepth: 0.001,
+            font: .systemFont(ofSize: 0.05),
+            containerFrame: .zero,
+            alignment: .center,
+            lineBreakMode: .byWordWrapping
+        )
+        let textEntity = ModelEntity(mesh: textMesh, materials: [SimpleMaterial(color: .white, isMetallic: false)])
+
+        // Position text above line (lift upward relative to world)
+        let worldOffset = SIMD3<Float>(0, 0.05, 0) // raise 5cm above midpoint
+        textEntity.position = worldOffset
+
+        // Billboard: face camera instead of inheriting line orientation
+        textEntity.orientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+
+        // Add text to same anchor
+        lineAnchor.addChild(textEntity)
         arView.scene.addAnchor(lineAnchor)
     }
 
