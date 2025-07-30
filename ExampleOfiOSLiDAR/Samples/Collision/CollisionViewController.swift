@@ -105,7 +105,6 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         }
         
         super.viewDidLoad()
-        
         arView.session.delegate = self
         initARView()
         addGesture()
@@ -149,26 +148,28 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         print("Cleared reusable ball (hidden)")
     }
     
-    
-    
     @objc
     func handleTap(_ sender: UITapGestureRecognizer) {
-        // Toggle automatic raycast on/off with tap
-        if raycastTimer?.isValid == true {
-            // Stop automatic raycast
-            raycastTimer?.invalidate()
-            raycastTimer = nil
-            print("Stopped automatic raycast")
-            
-            // Hide the reusable ball
-            reusableBall?.isEnabled = false
-        } else {
-            // Start automatic raycast
-            startAutomaticRaycast()
-            
-            // Show the reusable ball
-            reusableBall?.isEnabled = true
-        }
+        guard let ball = reusableBall else { return }
+
+        let worldPos = ball.position(relativeTo: nil)
+
+        let clone = ModelEntity(mesh: .generateSphere(radius: 0.02),
+                                materials: [SimpleMaterial(color: .red, isMetallic: false)])
+        let line = ModelEntity(mesh: .generateBox(size: [0.002, 0.002, 0.002]),
+                               materials: [SimpleMaterial(color: .blue, isMetallic: false)])
+
+        let anchor = AnchorEntity(world: worldPos)
+
+        // Important: positions are local to the anchor
+        clone.position = .zero
+        line.position = .zero
+
+        anchor.addChild(clone)
+        anchor.addChild(line)
+        arView.scene.addAnchor(anchor)
+
+        clones.append(CloneLink(clone: clone, line: line))
     }
     
     private func performAutomaticRaycast() {
@@ -178,21 +179,59 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         guard let ray = arView.ray(through: center) else { return }
         
         let dir = simd_normalize(ray.direction)
-        let hits = arView.scene.raycast(
-            origin: ray.origin,
-            direction: dir,
-            length: 10.0,
-            query: .nearest
-        )
-        
+        let hits = arView.scene.raycast(origin: ray.origin, direction: dir, length: 10.0, query: .nearest)
+
+        var ballPosition = ray.origin + dir * 2.0
         if let hit = hits.first {
-            ball.setPosition(hit.position, relativeTo: nil) // world space
-            ball.isEnabled = true
-            return
+            ballPosition = hit.position
         }
-        
-        // Fallback: 2 m straight ahead if the mesh isn't ready yet
-        ball.setPosition(ray.origin + dir * 2.0, relativeTo: nil)
+
+        ball.setPosition(ballPosition, relativeTo: nil)
         ball.isEnabled = true
+
+        // Update all lines to stretch to the moving ball
+        updateLines(to: ballPosition)
     }
+    
+    private func createLine(from start: SIMD3<Float>, to end: SIMD3<Float>, attachTo anchor: AnchorEntity) {
+        let direction = end - start
+        let distance = length(direction)
+        let midPoint = (start + end) / 2
+
+        // Cylinder aligned along Y, we’ll rotate it to match direction
+        let lineMesh = MeshResource.generateBox(size: [0.002, distance, 0.002])
+        let material = SimpleMaterial(color: .blue, isMetallic: false)
+        let lineEntity = ModelEntity(mesh: lineMesh, materials: [material])
+
+        // Position at midpoint
+        lineEntity.position = midPoint
+
+        // Rotate to face correct direction
+        lineEntity.look(at: end, from: midPoint, relativeTo: nil)
+
+        anchor.addChild(lineEntity)
+    }
+    
+    private func updateLines(to movingBallPosition: SIMD3<Float>) {
+        for link in clones {
+            let start = link.clone.position(relativeTo: nil)
+            let end = movingBallPosition
+
+            let direction = end - start
+            let distance = length(direction)
+            let midPoint = (start + end) / 2
+
+            // Update line scale & position
+            link.line.scale = SIMD3<Float>(1, 1, distance / 0.002) // z-stretch based on distance
+            link.line.position = midPoint
+            link.line.look(at: end, from: midPoint, relativeTo: nil)
+        }
+    }
+
+    
+    private struct CloneLink {
+        var clone: ModelEntity
+        var line: ModelEntity
+    }
+    private var clones: [CloneLink] = []
 }
