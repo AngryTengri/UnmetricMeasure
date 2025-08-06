@@ -1,5 +1,5 @@
 //
-//  CollisionViewController.swift
+//  MeasureViewController.swift
 //  ExampleOfiOSLiDAR
 //
 //  Created by TokyoYoshida on 2021/02/01.
@@ -10,7 +10,7 @@ import ARKit
 import Combine
 import SceneKit
 
-class CollisionViewController: UIViewController, ARSessionDelegate {
+class MeasureViewController: UIViewController, ARSessionDelegate {
     
     @IBOutlet var arView: ARView!
     let anchorName = "ball"
@@ -19,7 +19,6 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
     private var raycastTimer: Timer?
     private var reusableBall: ModelEntity?
     private var ballAnchor: AnchorEntity?
-    
     
     
     var orientation: UIInterfaceOrientation {
@@ -86,7 +85,7 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         }
         func createReusableBall() {
             // Create a reusable ball that will be transformed to different positions
-            let ball = ModelEntity(mesh: .generateSphere(radius: 0.02),
+            let ball = ModelEntity(mesh: .generateSphere(radius: 0.01),
                                    materials: [SimpleMaterial(color: .white, isMetallic: false)])
             
             // Make the ball always render on top by setting its rendering order
@@ -121,8 +120,6 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
     
     // MARK: - ARSessionDelegate
     
-    
-    
     private func startAutomaticRaycast() {
         // Start automatic raycast every 0.02 seconds (50 times per second)
         raycastTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
@@ -151,6 +148,8 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
     private var lastClone: ModelEntity? = nil
     private var dynamicLine: ModelEntity? = nil
     private var dynamicLineAnchor: AnchorEntity? = nil
+    private var guidePlane: ModelEntity?
+    private var guidePlaneAnchor: AnchorEntity?
 
     @objc
     func handleTap(_ sender: UITapGestureRecognizer) {
@@ -158,7 +157,7 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let worldPos = ball.position(relativeTo: nil)
 
         // Place new clone
-        let clone = ModelEntity(mesh: .generateSphere(radius: 0.02),
+        let clone = ModelEntity(mesh: .generateSphere(radius: 0.01),
                                 materials: [SimpleMaterial(color: .red, isMetallic: false)])
         let cloneAnchor = AnchorEntity(world: worldPos)
         clone.position = .zero
@@ -182,7 +181,7 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let midPoint = (start + end) / 2
 
         // Line entity
-        let lineMesh = MeshResource.generateBox(size: [0.002, distance, 0.002]) // Y-axis is length
+        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004]) // Y-axis is length
         let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
         line.position = .zero
 
@@ -205,8 +204,8 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let text = String(format: "%.2f m", distance)
         let textMesh = MeshResource.generateText(
             text,
-            extrusionDepth: 0.001,
-            font: .systemFont(ofSize: 0.05),
+            extrusionDepth: 0.0001,
+            font: .systemFont(ofSize: 0.02),
             containerFrame: .zero,
             alignment: .center,
             lineBreakMode: .byWordWrapping
@@ -214,11 +213,11 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let textEntity = ModelEntity(mesh: textMesh, materials: [SimpleMaterial(color: .white, isMetallic: false)])
 
         // Position text above line (lift upward relative to world)
-        let worldOffset = SIMD3<Float>(0, 0.05, 0) // raise 5cm above midpoint
+        let worldOffset = SIMD3<Float>(0, 0.02, 0) // raise 2cm above midpoint
         textEntity.position = worldOffset
 
-        // Billboard: face camera instead of inheriting line orientation
-        textEntity.orientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+        // Match line rotation instead of billboarding
+        textEntity.orientation = line.orientation
 
         // Add text to same anchor
         lineAnchor.addChild(textEntity)
@@ -266,8 +265,39 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         dynamicLine = line
     }
 
+    private func spawnPlaneAtBall(position: SIMD3<Float>, normal: SIMD3<Float>) {
+        // Remove old plane if it exists
+        if let anchor = guidePlaneAnchor {
+            arView.scene.removeAnchor(anchor)
+        }
+        // Create a simple horizontal plane (10cm x 10cm)
+        let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
+        let material = SimpleMaterial(color: .yellow, isMetallic: false)
+        let plane = ModelEntity(mesh: planeMesh, materials: [material])
+        plane.position = .zero // Centered on anchor
 
-    
+        // Compute rotation: align plane's Y axis with the normal
+        let up = SIMD3<Float>(0, 1, 0)
+        let axis = simd_normalize(simd_cross(up, normal))
+        let angle = acos(simd_dot(up, simd_normalize(normal)))
+        let rotation = simd_quatf(angle: angle, axis: axis)
+
+        // Offset the plane so it's tangent to the bottom of the ball
+        let ballRadius: Float = 0.01
+        let planePosition = position - normal * ballRadius
+
+        // Anchor at the offset position and orientation
+        let anchor = AnchorEntity(world: planePosition)
+        anchor.orientation = rotation
+        anchor.addChild(plane)
+        arView.scene.addAnchor(anchor)
+
+        // Store references
+        guidePlane = plane
+        guidePlaneAnchor = anchor
+    }
+
+
     private func performAutomaticRaycast() {
         guard let ball = reusableBall else { return }
         
@@ -280,11 +310,24 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         var ballPosition = ray.origin + dir * 2.0
         if let hit = hits.first {
             ballPosition = hit.position
+            if let anchor = guidePlaneAnchor {
+                let ballRadius: Float = 0.01
+                let planePosition = hit.position - hit.normal * ballRadius
+                anchor.position = planePosition
+                // Update orientation
+                let up = SIMD3<Float>(0, 1, 0)
+                let axis = simd_normalize(simd_cross(up, hit.normal))
+                let angle = acos(simd_dot(up, simd_normalize(hit.normal)))
+                anchor.orientation = simd_quatf(angle: angle, axis: axis)
+                guidePlane?.isEnabled = true
+            } else {
+                spawnPlaneAtBall(position: hit.position, normal: hit.normal)
+            }
         }
 
         ball.setPosition(ballPosition, relativeTo: nil)
         ball.isEnabled = true
-
+        
         // Update all lines to stretch to the moving ball
         updateLines(to: ballPosition)
         updateDynamicLine()
@@ -296,7 +339,7 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
         let midPoint = (start + end) / 2
 
         // Cylinder aligned along Y, we’ll rotate it to match direction
-        let lineMesh = MeshResource.generateBox(size: [0.002, distance, 0.002])
+        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004])
         let material = SimpleMaterial(color: .blue, isMetallic: false)
         let lineEntity = ModelEntity(mesh: lineMesh, materials: [material])
 
@@ -324,7 +367,6 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
             link.line.look(at: end, from: midPoint, relativeTo: nil)
         }
     }
-
     
     private struct CloneLink {
         var clone: ModelEntity
@@ -332,3 +374,5 @@ class CollisionViewController: UIViewController, ARSessionDelegate {
     }
     private var clones: [CloneLink] = []
 }
+
+

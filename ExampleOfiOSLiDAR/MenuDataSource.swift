@@ -24,9 +24,9 @@ struct MenuItem {
 class MenuViewModel {
     private let dataSource = [
         MenuItem (
-            title: "Collision",
-            description: "Collision detection of objects using LiDAR.",
-            prefix: "Collision"
+            title: "Measure",
+            description: "Measure objects using LiDAR raycast.",
+            prefix: "Measure"
         )
     ]
     

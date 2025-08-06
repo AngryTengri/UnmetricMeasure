@@ -11,7 +11,7 @@
         <!--ARView-->
         <scene sceneID="LSC-oS-AYa">
             <objects>
-                <viewController id="bIE-QO-bdq" userLabel="ARView" customClass="CollisionViewController" customModule="ExampleOfiOSLiDAR" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="bIE-QO-bdq" userLabel="ARView" customClass="MeasureViewController" customModule="ExampleOfiOSLiDAR" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="E0i-Tg-Hpn"/>
                         <viewControllerLayoutGuide type="bottom" id="r86-s3-iZ5"/>
