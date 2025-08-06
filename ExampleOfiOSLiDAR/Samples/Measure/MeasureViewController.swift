@@ -148,8 +148,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     private var lastClone: ModelEntity? = nil
     private var dynamicLine: ModelEntity? = nil
     private var dynamicLineAnchor: AnchorEntity? = nil
-    private var guidePlane: ModelEntity?
-    private var guidePlaneAnchor: AnchorEntity?
+    private var planeAnchor: AnchorEntity? = nil // Track the current plane anchor
+    // Removed guidePlane and guidePlaneAnchor
 
     @objc
     func handleTap(_ sender: UITapGestureRecognizer) {
@@ -265,41 +265,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         dynamicLine = line
     }
 
-    private func spawnPlaneAtBall(position: SIMD3<Float>, normal: SIMD3<Float>) {
-        // Remove old plane if it exists
-        if let anchor = guidePlaneAnchor {
-            arView.scene.removeAnchor(anchor)
-        }
-        // Create a simple horizontal plane (10cm x 10cm)
-        let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
-        let material = SimpleMaterial(color: .yellow, isMetallic: false)
-        let plane = ModelEntity(mesh: planeMesh, materials: [material])
-        plane.position = .zero // Centered on anchor
-
-        // Compute rotation: align plane's Y axis with the normal
-        let up = SIMD3<Float>(0, 1, 0)
-        let axis = simd_normalize(simd_cross(up, normal))
-        let angle = acos(simd_dot(up, simd_normalize(normal)))
-        let rotation = simd_quatf(angle: angle, axis: axis)
-
-        // Offset the plane so it's tangent to the bottom of the ball
-        let ballRadius: Float = 0.01
-        let planePosition = position - normal * ballRadius
-
-        // Anchor at the offset position and orientation
-        let anchor = AnchorEntity(world: planePosition)
-        anchor.orientation = rotation
-        anchor.addChild(plane)
-        arView.scene.addAnchor(anchor)
-
-        // Store references
-        guidePlane = plane
-        guidePlaneAnchor = anchor
-    }
-
-
     private func performAutomaticRaycast() {
-        guard let ball = reusableBall else { return }
+        guard let ball = reusableBall else { return; }
         
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
         guard let ray = arView.ray(through: center) else { return }
@@ -308,25 +275,23 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         let hits = arView.scene.raycast(origin: ray.origin, direction: dir, length: 10.0, query: .nearest)
 
         var ballPosition = ray.origin + dir * 2.0
+        var ballRotation = simd_quatf()
         if let hit = hits.first {
             ballPosition = hit.position
-            if let anchor = guidePlaneAnchor {
-                let ballRadius: Float = 0.01
-                let planePosition = hit.position - hit.normal * ballRadius
-                anchor.position = planePosition
-                // Update orientation
-                let up = SIMD3<Float>(0, 1, 0)
-                let axis = simd_normalize(simd_cross(up, hit.normal))
-                let angle = acos(simd_dot(up, simd_normalize(hit.normal)))
-                anchor.orientation = simd_quatf(angle: angle, axis: axis)
-                guidePlane?.isEnabled = true
-            } else {
-                spawnPlaneAtBall(position: hit.position, normal: hit.normal)
-            }
+            // Compute rotation from hit normal
+            let up = SIMD3<Float>(0, 1, 0)
+            let n = simd_normalize(hit.normal)
+            let axis = simd_normalize(simd_cross(up, n))
+            let angle = acos(simd_dot(up, n))
+            ballRotation = simd_quatf(angle: angle, axis: axis)
         }
 
         ball.setPosition(ballPosition, relativeTo: nil)
+        ball.orientation = ballRotation
         ball.isEnabled = true
+
+        // Always spawn a plane at the same position and rotation as the ball, and remove previous
+        spawnPlaneWithBall(position: ballPosition, rotation: ballRotation)
         
         // Update all lines to stretch to the moving ball
         updateLines(to: ballPosition)
@@ -373,6 +338,27 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         var line: ModelEntity
     }
     private var clones: [CloneLink] = []
+
+    private func spawnPlaneWithBall(position: SIMD3<Float>, rotation: simd_quatf) {
+        // Remove previous plane anchor if it exists
+        if let prevAnchor = planeAnchor {
+            arView.scene.removeAnchor(prevAnchor)
+            planeAnchor = nil
+        }
+        let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
+        let plane = ModelEntity(mesh: planeMesh, materials: [SimpleMaterial(color: .yellow, isMetallic: false)])
+        plane.position = .zero // No offset
+        plane.orientation = simd_quatf() // No local rotation, use anchor's rotation
+        let anchor = AnchorEntity(world: position)
+        anchor.transform = Transform(
+            scale: SIMD3<Float>(repeating: 1),
+            rotation: rotation,
+            translation: position
+        )
+        anchor.addChild(plane)
+        arView.scene.addAnchor(anchor)
+        planeAnchor = anchor
+    }
 }
 
 
