@@ -148,7 +148,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     private var lastClone: ModelEntity? = nil
     private var dynamicLine: ModelEntity? = nil
     private var dynamicLineAnchor: AnchorEntity? = nil
-    private var planeAnchor: AnchorEntity? = nil // Track the current plane anchor
+    private var planeEntity: ModelEntity? = nil // Track the plane entity directly
+    private var sharedAnchor: AnchorEntity? = nil // Shared anchor for both ball and plane
     // Removed guidePlane and guidePlaneAnchor
 
     @objc
@@ -266,7 +267,16 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     }
 
     private func performAutomaticRaycast() {
-        guard let ball = reusableBall else { return; }
+        // Create shared anchor if needed
+        if sharedAnchor == nil {
+            let anchor = AnchorEntity()
+            arView.scene.addAnchor(anchor)
+            sharedAnchor = anchor
+            // Add ball and plane as children if they exist
+            if let ball = reusableBall { anchor.addChild(ball) }
+            if let plane = planeEntity { anchor.addChild(plane) }
+        }
+        guard let ball = reusableBall, let anchor = sharedAnchor else { return; }
         
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
         guard let ray = arView.ray(through: center) else { return }
@@ -286,12 +296,18 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
             ballRotation = simd_quatf(angle: angle, axis: axis)
         }
 
-        ball.setPosition(ballPosition, relativeTo: nil)
-        ball.orientation = ballRotation
+        // Move the anchor, so both ball and plane move together
+        anchor.transform = Transform(
+            scale: SIMD3<Float>(repeating: 1),
+            rotation: ballRotation,
+            translation: ballPosition
+        )
+        ball.position = .zero
+        ball.orientation = simd_quatf() // No local rotation, handled by anchor
         ball.isEnabled = true
 
-        // Always spawn a plane at the same position and rotation as the ball, and remove previous
-        spawnPlaneWithBall(position: ballPosition, rotation: ballRotation)
+        // Always update or create the plane as a child of the anchor
+        updatePlaneWithBall(anchor: anchor)
         
         // Update all lines to stretch to the moving ball
         updateLines(to: ballPosition)
@@ -339,25 +355,17 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     }
     private var clones: [CloneLink] = []
 
-    private func spawnPlaneWithBall(position: SIMD3<Float>, rotation: simd_quatf) {
-        // Remove previous plane anchor if it exists
-        if let prevAnchor = planeAnchor {
-            arView.scene.removeAnchor(prevAnchor)
-            planeAnchor = nil
+    private func updatePlaneWithBall(anchor: AnchorEntity) {
+        if planeEntity == nil {
+            let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
+            let plane = ModelEntity(mesh: planeMesh, materials: [SimpleMaterial(color: .yellow, isMetallic: false)])
+            planeEntity = plane
+            anchor.addChild(plane)
         }
-        let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
-        let plane = ModelEntity(mesh: planeMesh, materials: [SimpleMaterial(color: .yellow, isMetallic: false)])
-        plane.position = .zero // No offset
-        plane.orientation = simd_quatf() // No local rotation, use anchor's rotation
-        let anchor = AnchorEntity(world: position)
-        anchor.transform = Transform(
-            scale: SIMD3<Float>(repeating: 1),
-            rotation: rotation,
-            translation: position
-        )
-        anchor.addChild(plane)
-        arView.scene.addAnchor(anchor)
-        planeAnchor = anchor
+        guard let plane = planeEntity else { return }
+        plane.position = .zero // Always at anchor origin
+        plane.orientation = simd_quatf() // No local rotation, handled by anchor
+        plane.isEnabled = true
     }
 }
 
