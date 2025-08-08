@@ -157,6 +157,17 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     private let redMaterial = SimpleMaterial(color: .red, isMetallic: false)
     private let blueMaterial = SimpleMaterial(color: .blue, isMetallic: false)
     private let greenMaterial = SimpleMaterial(color: .green, isMetallic: false)
+    private lazy var guideTexture: TextureResource? = {
+        // Try direct image name first
+        if let cg = UIImage(named: "MeasuringAimGuide 1")?.cgImage {
+            return try? TextureResource.generate(from: cg, options: .init(semantic: .color))
+        }
+        if let cg = UIImage(named: "Guide")?.cgImage {
+            return try? TextureResource.generate(from: cg, options: .init(semantic: .color))
+        }
+        // Fallback to asset by imageset name
+        return try? TextureResource.load(named: "Guide")
+    }()
 
     // Smoothing state
     private var filteredBallPosition: SIMD3<Float>? = nil
@@ -172,6 +183,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         // Place new clone
         let clone = ModelEntity(mesh: sphereMesh,
                                 materials: [redMaterial])
+        // Make red sphere 50% smaller
+        clone.scale = SIMD3<Float>(repeating: 0.5)
         let cloneAnchor = AnchorEntity(world: worldPos)
         clone.position = .zero
         cloneAnchor.addChild(clone)
@@ -335,7 +348,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         )
         ball.position = .zero
         ball.orientation = simd_quatf() // No local rotation, handled by anchor
-        ball.isEnabled = true
+        // Keep the white center sphere hidden
+        ball.isEnabled = false
 
         // Always update or create the plane as a child of the anchor
         updatePlaneWithBall(anchor: anchor)
@@ -388,15 +402,32 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
 
     private func updatePlaneWithBall(anchor: AnchorEntity) {
         if planeEntity == nil {
-            let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1)
-            let plane = ModelEntity(mesh: planeMesh, materials: [SimpleMaterial(color: .yellow, isMetallic: false)])
-            planeEntity = plane
-            anchor.addChild(plane)
+            let planeMesh = MeshResource.generatePlane(width: 0.1, depth: 0.1, cornerRadius: 0)
+            // Apply guide texture using an unlit material; enable transparent blending so PNG alpha is respected
+            if let tex = guideTexture ?? (try? TextureResource.load(named: "Guide")) {
+                var unlit = UnlitMaterial()
+                unlit.baseColor = .texture(tex)
+                unlit.blending = .transparent(opacity: PhysicallyBasedMaterial.Opacity(floatLiteral: 1.0))
+                let plane = ModelEntity(mesh: planeMesh, materials: [unlit])
+                planeEntity = plane
+            } else {
+                let plane = ModelEntity(mesh: planeMesh, materials: [SimpleMaterial(color: .yellow, isMetallic: false)])
+                planeEntity = plane
+            }
+            if let plane = planeEntity {
+                anchor.addChild(plane)
+            }
         }
         guard let plane = planeEntity else { return }
         plane.position = .zero // Always at anchor origin
         plane.orientation = simd_quatf() // No local rotation, handled by anchor
         plane.isEnabled = true
+        // Ensure material stays assigned if the model component resets
+        if let tex = guideTexture ?? (try? TextureResource.load(named: "Guide")), var unlit = plane.model?.materials.first as? UnlitMaterial {
+            unlit.baseColor = .texture(tex)
+            unlit.blending = .transparent(opacity: PhysicallyBasedMaterial.Opacity(floatLiteral: 1.0))
+            plane.model?.materials[0] = unlit
+        }
     }
 }
 
