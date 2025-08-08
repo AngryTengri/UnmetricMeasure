@@ -36,14 +36,13 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         func setARViewOptions() {
             arView.environment.sceneUnderstanding.options = []
             // Removed .occlusion to prevent ball from being hidden behind objects
-            arView.environment.sceneUnderstanding.options.insert(.physics)
             arView.renderOptions = [.disablePersonOcclusion, .disableDepthOfField, .disableMotionBlur]
             arView.automaticallyConfigureSession = false
         }
         func buildConfigure() -> ARWorldTrackingConfiguration {
             let configuration = ARWorldTrackingConfiguration()
             
-            configuration.sceneReconstruction = .meshWithClassification
+            configuration.sceneReconstruction = .mesh
             configuration.environmentTexturing = .automatic
             configuration.planeDetection = [.horizontal]
             if type(of: configuration).supportsFrameSemantics(.sceneDepth) {
@@ -85,8 +84,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         }
         func createReusableBall() {
             // Create a reusable ball that will be transformed to different positions
-            let ball = ModelEntity(mesh: .generateSphere(radius: 0.01),
-                                   materials: [SimpleMaterial(color: .white, isMetallic: false)])
+            let ball = ModelEntity(mesh: sphereMesh,
+                                   materials: [whiteMaterial])
             
             // Make the ball always render on top by setting its rendering order
             ball.components[ModelDebugOptionsComponent.self] = ModelDebugOptionsComponent(visualizationMode: .none)
@@ -147,7 +146,23 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     private var dynamicLineAnchor: AnchorEntity? = nil
     private var planeEntity: ModelEntity? = nil // Track the plane entity directly
     private var sharedAnchor: AnchorEntity? = nil // Shared anchor for both ball and plane
+    private var measurementsAnchor: AnchorEntity? = nil // Shared anchor for static measurement entities
     // Removed guidePlane and guidePlaneAnchor
+
+    // Cached meshes and materials to avoid re-allocations
+    private lazy var sphereMesh: MeshResource = MeshResource.generateSphere(radius: 0.01)
+    private lazy var lineBaseYMesh: MeshResource = MeshResource.generateBox(size: [0.004, 1.0, 0.004])
+    private lazy var lineBaseZMesh: MeshResource = MeshResource.generateBox(size: [0.004, 0.004, 0.002]) // dynamic line base along Z
+    private let whiteMaterial = SimpleMaterial(color: .white, isMetallic: false)
+    private let redMaterial = SimpleMaterial(color: .red, isMetallic: false)
+    private let blueMaterial = SimpleMaterial(color: .blue, isMetallic: false)
+    private let greenMaterial = SimpleMaterial(color: .green, isMetallic: false)
+
+    // Smoothing state
+    private var filteredBallPosition: SIMD3<Float>? = nil
+    private var filteredBallRotation: simd_quatf? = nil
+    private let positionSmoothingAlpha: Float = 0.2
+    private let rotationSmoothingAlpha: Float = 0.15
 
     @objc
     func handleTap(_ sender: UITapGestureRecognizer) {
@@ -155,8 +170,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         let worldPos = ball.position(relativeTo: nil)
 
         // Place new clone
-        let clone = ModelEntity(mesh: .generateSphere(radius: 0.01),
-                                materials: [SimpleMaterial(color: .red, isMetallic: false)])
+        let clone = ModelEntity(mesh: sphereMesh,
+                                materials: [redMaterial])
         let cloneAnchor = AnchorEntity(world: worldPos)
         clone.position = .zero
         cloneAnchor.addChild(clone)
@@ -178,27 +193,31 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         let distance = length(direction)
         let midPoint = (start + end) / 2
 
-        // Line entity
-        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004]) // Y-axis is length
-        let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
-        line.position = .zero
+        // Create shared measurements anchor if needed
+        if measurementsAnchor == nil {
+            let anchor = AnchorEntity()
+            arView.scene.addAnchor(anchor)
+            measurementsAnchor = anchor
+        }
+        guard let measurementsAnchor else { return }
 
-        // Anchor for line and text
-        let lineAnchor = AnchorEntity(world: midPoint)
+        // Container to hold line + text at the midpoint with rotation
+        let container = Entity()
 
-        // Rotate line Y-axis → direction
+        // Rotate container's +Y toward the direction
         let up = SIMD3<Float>(0, 1, 0)
         let dir = normalize(direction)
-        if abs(dot(up, dir)) < 0.999 {
-            let axis = normalize(cross(up, dir))
-            let angle = acos(max(min(dot(up, dir), 1.0), -1.0))
-            line.orientation = simd_quatf(angle: angle, axis: axis)
-        }
+        let rotation = simd_quatf(from: up, to: dir)
+        container.transform = Transform(scale: .one, rotation: rotation, translation: midPoint)
 
-        // Add line
-        lineAnchor.addChild(line)
+        // Line: unit length along Y, scale Y to the distance
+        let line = ModelEntity(mesh: lineBaseYMesh, materials: [blueMaterial])
+        line.position = .zero
+        line.orientation = simd_quatf()
+        line.scale = SIMD3<Float>(1, distance, 1)
+        container.addChild(line)
 
-        // Text: create at midpoint and lift slightly upward (world offset)
+        // Text: offset upward in container local space
         let text = String(format: "%.2f m", distance)
         let textMesh = MeshResource.generateText(
             text,
@@ -208,18 +227,12 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
             alignment: .center,
             lineBreakMode: .byWordWrapping
         )
-        let textEntity = ModelEntity(mesh: textMesh, materials: [SimpleMaterial(color: .white, isMetallic: false)])
+        let textEntity = ModelEntity(mesh: textMesh, materials: [whiteMaterial])
+        textEntity.position = SIMD3<Float>(0, 0.02, 0)
+        textEntity.orientation = simd_quatf()
+        container.addChild(textEntity)
 
-        // Position text above line (lift upward relative to world)
-        let worldOffset = SIMD3<Float>(0, 0.02, 0) // raise 2cm above midpoint
-        textEntity.position = worldOffset
-
-        // Match line rotation instead of billboarding
-        textEntity.orientation = line.orientation
-
-        // Add text to same anchor
-        lineAnchor.addChild(textEntity)
-        arView.scene.addAnchor(lineAnchor)
+        measurementsAnchor.addChild(container)
     }
 
     private func updateDynamicLine() {
@@ -271,19 +284,47 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         guard let ball = reusableBall, let anchor = sharedAnchor else { return; }
         
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
-        guard let ray = arView.ray(through: center) else { return }
-        
-        let dir = simd_normalize(ray.direction)
-        let hits = arView.scene.raycast(origin: ray.origin, direction: dir, length: 10.0, query: .nearest)
-
-        var ballPosition = ray.origin + dir * 2.0
+        // Prefer ARKit raycast for performance and stability
+        var ballPosition: SIMD3<Float>
         var ballRotation = simd_quatf()
-        if let hit = hits.first {
-            ballPosition = hit.position
-            // Compute rotation from hit normal using quaternion-from-to (no acos)
+        let results = arView.raycast(from: center, allowing: .estimatedPlane, alignment: .any)
+        if let hit = results.first {
+            let t = hit.worldTransform
+            let rawPosition = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
             let up = SIMD3<Float>(0, 1, 0)
-            let n = simd_normalize(hit.normal)
-            ballRotation = simd_quatf(from: up, to: n)
+            let ny = SIMD3<Float>(t.columns.1.x, t.columns.1.y, t.columns.1.z)
+            let rawRotation: simd_quatf = simd_length_squared(ny) > 0.000001 ? simd_quatf(from: up, to: simd_normalize(ny)) : simd_quatf()
+
+            // Exponential smoothing for position
+            if let prev = filteredBallPosition {
+                ballPosition = mix(prev, rawPosition, t: positionSmoothingAlpha)
+                filteredBallPosition = ballPosition
+            } else {
+                ballPosition = rawPosition
+                filteredBallPosition = rawPosition
+            }
+
+            // Slerp smoothing for rotation
+            if let prevR = filteredBallRotation {
+                ballRotation = simd_slerp(prevR, rawRotation, rotationSmoothingAlpha)
+                filteredBallRotation = ballRotation
+            } else {
+                ballRotation = rawRotation
+                filteredBallRotation = rawRotation
+            }
+        } else if let ray = arView.ray(through: center) {
+            // Fallback: project a point 2m forward from the camera ray
+            let dir = simd_normalize(ray.direction)
+            let rawPosition = ray.origin + dir * 2.0
+            if let prev = filteredBallPosition {
+                ballPosition = mix(prev, rawPosition, t: positionSmoothingAlpha)
+                filteredBallPosition = ballPosition
+            } else {
+                ballPosition = rawPosition
+                filteredBallPosition = rawPosition
+            }
+        } else {
+            return
         }
 
         // Move the anchor, so both ball and plane move together
