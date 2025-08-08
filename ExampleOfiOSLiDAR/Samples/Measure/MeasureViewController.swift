@@ -15,8 +15,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     @IBOutlet var arView: ARView!
     let anchorName = "ball"
     
-    // Timer for automatic raycast shooting
-    private var raycastTimer: Timer?
+    // Frame-driven update subscription
+    private var updateSubscription: Cancellable?
     private var reusableBall: ModelEntity?
     private var ballAnchor: AnchorEntity?
     
@@ -109,24 +109,21 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         addGesture()
         addCrosshair()
         createReusableBall()
-        startAutomaticRaycast()
+        // Run automatic raycast once per frame instead of a Timer
+        updateSubscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak self] _ in
+            self?.performAutomaticRaycast()
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        raycastTimer?.invalidate()
-        raycastTimer = nil
+        updateSubscription?.cancel()
+        updateSubscription = nil
     }
     
     // MARK: - ARSessionDelegate
     
-    private func startAutomaticRaycast() {
-        // Start automatic raycast every 0.02 seconds (50 times per second)
-        raycastTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
-            self?.performAutomaticRaycast()
-        }
-        print("Started automatic raycast shooting (every 0.02 seconds)")
-    }
+    // Removed Timer-based updates in favor of frame-driven updates
     
     func getZForward(transform: simd_float4x4) -> SIMD3<Float> {
         return SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
@@ -235,35 +232,30 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         let distance = length(direction)
         let midPoint = (start + end) / 2
 
-        // Remove old line and anchor if they exist
-        if let anchor = dynamicLineAnchor {
-            arView.scene.removeAnchor(anchor)
-            dynamicLineAnchor = nil
-            dynamicLine = nil
+        // Create once, then update transform/scale each frame
+        if dynamicLineAnchor == nil || dynamicLine == nil {
+            let anchor = AnchorEntity()
+            let lineMesh = MeshResource.generateBox(size: [0.004, 0.004, 0.002]) // base length along Z = 0.002
+            let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .green, isMetallic: false)])
+            line.position = .zero
+            anchor.addChild(line)
+            arView.scene.addAnchor(anchor)
+            dynamicLineAnchor = anchor
+            dynamicLine = line
         }
 
-        // Create fresh anchor + line at correct midpoint each frame
-        let lineMesh = MeshResource.generateBox(size: [0.004, distance, 0.004]) // Y-axis is the long axis
-        let line = ModelEntity(mesh: lineMesh, materials: [SimpleMaterial(color: .green, isMetallic: false)])
-        line.position = .zero
+        guard let anchor = dynamicLineAnchor, let line = dynamicLine else { return }
 
-        // Rotate Y-axis to match direction
-        let up = SIMD3<Float>(0, 1, 0)
-        let dir = normalize(direction)
-        if abs(dot(up, dir)) < 0.999 {
-            let axis = normalize(cross(up, dir))
-            let dotValue = max(min(dot(up, dir), 1.0), -1.0)
-            let angle = acos(dotValue)
-            line.orientation = simd_quatf(angle: angle, axis: axis)
-        }
+        // Keep anchor at identity so local == world for the line
+        anchor.transform = Transform()
 
-        // Anchor at midpoint and add
-        let anchor = AnchorEntity(world: midPoint)
-        anchor.addChild(line)
-        arView.scene.addAnchor(anchor)
+        // Position and orient the line in world space, then RealityKit composes with identity anchor
+        line.position = midPoint
+        line.look(at: end, from: midPoint, relativeTo: nil)
 
-        dynamicLineAnchor = anchor
-        dynamicLine = line
+        // Scale Z to match distance (base Z = 0.002)
+        let baseZ: Float = 0.002
+        line.scale = SIMD3<Float>(1, 1, max(distance / baseZ, 0))
     }
 
     private func performAutomaticRaycast() {
@@ -288,12 +280,10 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         var ballRotation = simd_quatf()
         if let hit = hits.first {
             ballPosition = hit.position
-            // Compute rotation from hit normal
+            // Compute rotation from hit normal using quaternion-from-to (no acos)
             let up = SIMD3<Float>(0, 1, 0)
             let n = simd_normalize(hit.normal)
-            let axis = simd_normalize(simd_cross(up, n))
-            let angle = acos(simd_dot(up, n))
-            ballRotation = simd_quatf(angle: angle, axis: axis)
+            ballRotation = simd_quatf(from: up, to: n)
         }
 
         // Move the anchor, so both ball and plane move together
