@@ -175,15 +175,28 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         m.blending = .opaque
         return m
     }()
+    // Bus image plane support (Front_Bus follows center guide)
+    private lazy var frontBusTexture: TextureResource? = try? TextureResource.load(named: "Front_Bus")
+    private var frontBusEntity: ModelEntity? = nil
+    // MeasuringBUS texture for dynamic line
+    private lazy var measuringBusTexture: TextureResource? = {
+        do {
+            let texture = try TextureResource.load(named: "Bus")
+            print("Successfully loaded Bus texture for dynamic line")
+            return texture
+        } catch {
+            print("Failed to load Bus texture: \(error)")
+            return nil
+        }
+    }()
     private lazy var guideTexture: TextureResource? = {
-        // Try direct image name first
+        // Restore guide image
         if let cg = UIImage(named: "MeasuringAimGuide 1")?.cgImage {
             return try? TextureResource.generate(from: cg, options: .init(semantic: .color))
         }
         if let cg = UIImage(named: "Guide")?.cgImage {
             return try? TextureResource.generate(from: cg, options: .init(semantic: .color))
         }
-        // Fallback to asset by imageset name
         return try? TextureResource.load(named: "Guide")
     }()
 
@@ -217,6 +230,8 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
 
         // Update last clone
         lastClone = clone
+
+        // No per-point bus spawning. Front_Bus will follow center guide instead.
     }
 
     private func addStaticLine(from start: SIMD3<Float>, to end: SIMD3<Float>) {
@@ -284,7 +299,21 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
             // Use a plane; set width to match the guide plane (0.1) and stretch along Z
             let baseZ: Float = 0.002
             let planeMesh = MeshResource.generatePlane(width: 0.1, depth: baseZ, cornerRadius: 0)
-            let line = ModelEntity(mesh: planeMesh, materials: [unlitGreenMaterial])
+            
+            // Create material with MeasuringBUS texture or fallback to green
+            let material: Material
+            if let busTexture = measuringBusTexture {
+                print("Using Bus texture for dynamic line")
+                var unlit = UnlitMaterial()
+                unlit.baseColor = .texture(busTexture)
+                unlit.blending = .transparent(opacity: PhysicallyBasedMaterial.Opacity(floatLiteral: 1.0))
+                material = unlit
+            } else {
+                print("Bus texture not available, using green material for dynamic line")
+                material = unlitGreenMaterial
+            }
+            
+            let line = ModelEntity(mesh: planeMesh, materials: [material])
             line.position = .zero
             anchor.addChild(line)
             arView.scene.addAnchor(anchor)
@@ -403,6 +432,27 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         // Update all lines to stretch to the moving ball
         updateLines(to: ballPosition)
         updateDynamicLine()
+
+        // Ensure Front_Bus follows the center guide (shared anchor) and faces camera
+        if frontBusEntity == nil, let tex = frontBusTexture {
+            // Create once as a child of the shared anchor so it moves/rotates with the center guide
+            let mesh = MeshResource.generatePlane(width: 0.1, height: 0.1)
+            var unlit = UnlitMaterial()
+            unlit.baseColor = .texture(tex)
+            unlit.blending = .transparent(opacity: PhysicallyBasedMaterial.Opacity(floatLiteral: 1.0))
+            let entity = ModelEntity(mesh: mesh, materials: [unlit])
+            // Offset slightly along local Z to avoid z-fighting with the center plane
+            entity.position = SIMD3<Float>(0, 0, 0.005)
+            if let anchor = sharedAnchor {
+                anchor.addChild(entity)
+                frontBusEntity = entity
+            }
+        }
+        if let bus = frontBusEntity {
+            // Face camera each frame from the bus' world position
+            let busPos = bus.position(relativeTo: nil)
+            bus.look(at: arView.cameraTransform.translation, from: busPos, relativeTo: nil)
+        }
     }
     
     private func createLine(from start: SIMD3<Float>, to end: SIMD3<Float>, attachTo anchor: AnchorEntity) {

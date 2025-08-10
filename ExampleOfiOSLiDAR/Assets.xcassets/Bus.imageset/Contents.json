@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "MeasuringBUS.png",
+      "filename" : "MeasureDistanceBusFull.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "MeasuringBUS 1.png",
+      "filename" : "MeasureDistanceBusFull 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "MeasuringBUS 2.png",
+      "filename" : "MeasureDistanceBusFull 2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
