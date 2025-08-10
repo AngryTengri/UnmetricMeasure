@@ -20,8 +20,6 @@
 		1E9A572226AAA0990083CFDD /* PointCloudRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9A572126AAA0990083CFDD /* PointCloudRenderer.swift */; };
 		1E9A572426AAA1180083CFDD /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9A572326AAA1180083CFDD /* Helpers.swift */; };
 		1E9A572626AAA5A80083CFDD /* PointCloudShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 1E9A572526AAA5A80083CFDD /* PointCloudShaders.metal */; };
-		1ED25C3B25C7EC6500CDB5AE /* Collision.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1ED25C3A25C7EC6500CDB5AE /* Collision.storyboard */; };
-		1ED25C4025C7EC7800CDB5AE /* CollisionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED25C3F25C7EC7800CDB5AE /* CollisionViewController.swift */; };
 		1EEE225A25A7039B00706DE8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EEE225925A7039B00706DE8 /* AppDelegate.swift */; };
 		1EEE225C25A7039B00706DE8 /* DepthMapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EEE225B25A7039B00706DE8 /* DepthMapViewController.swift */; };
 		1EEE225E25A7039B00706DE8 /* Experience.rcproject in Sources */ = {isa = PBXBuildFile; fileRef = 1EEE225D25A7039B00706DE8 /* Experience.rcproject */; };
@@ -36,6 +34,15 @@
 		1EF1911225C607E3005064FC /* MenuItemCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF1911125C607E3005064FC /* MenuItemCell.swift */; };
 		1EF5A0D026AA1D6600E49415 /* PointCloudViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF5A0CE26AA1D6600E49415 /* PointCloudViewController.swift */; };
 		1EF5A0D126AA1D6600E49415 /* PointCloud.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1EF5A0CF26AA1D6600E49415 /* PointCloud.storyboard */; };
+		FBD0C0B52E3A27B200411D06 /* Measure.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B22E3A27B200411D06 /* Measure.storyboard */; };
+		FBD0C0B62E3A27B200411D06 /* Measure.md in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B12E3A27B200411D06 /* Measure.md */; };
+		FBD0C0B72E3A27B200411D06 /* MeasureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD0C0B32E3A27B200411D06 /* MeasureViewController.swift */; };
+		FBD0C0B82E3A27B200411D06 /* MeasureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD0C0B32E3A27B200411D06 /* MeasureViewController.swift */; };
+		FBD0C0B92E3A27B200411D06 /* Measure.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B22E3A27B200411D06 /* Measure.storyboard */; };
+		FBD0C0BA2E3A27B200411D06 /* Measure.md in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B12E3A27B200411D06 /* Measure.md */; };
+		FBD0C0BB2E3A27B200411D06 /* MeasureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD0C0B32E3A27B200411D06 /* MeasureViewController.swift */; };
+		FBD0C0BC2E3A27B200411D06 /* Measure.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B22E3A27B200411D06 /* Measure.storyboard */; };
+		FBD0C0BD2E3A27B200411D06 /* Measure.md in Resources */ = {isa = PBXBuildFile; fileRef = FBD0C0B12E3A27B200411D06 /* Measure.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,8 +77,6 @@
 		1E9A572326AAA1180083CFDD /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		1E9A572526AAA5A80083CFDD /* PointCloudShaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = PointCloudShaders.metal; sourceTree = "<group>"; };
 		1E9A572726AAA5B40083CFDD /* PointCloudShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PointCloudShaderTypes.h; sourceTree = "<group>"; };
-		1ED25C3A25C7EC6500CDB5AE /* Collision.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = Collision.storyboard; sourceTree = "<group>"; };
-		1ED25C3F25C7EC7800CDB5AE /* CollisionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollisionViewController.swift; sourceTree = "<group>"; };
 		1EEE225625A7039B00706DE8 /* ExampleOfiOSLiDAR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExampleOfiOSLiDAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EEE225925A7039B00706DE8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1EEE225B25A7039B00706DE8 /* DepthMapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthMapViewController.swift; sourceTree = "<group>"; };
@@ -92,6 +97,9 @@
 		1EF1911125C607E3005064FC /* MenuItemCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuItemCell.swift; sourceTree = "<group>"; };
 		1EF5A0CE26AA1D6600E49415 /* PointCloudViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PointCloudViewController.swift; sourceTree = "<group>"; };
 		1EF5A0CF26AA1D6600E49415 /* PointCloud.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = PointCloud.storyboard; sourceTree = "<group>"; };
+		FBD0C0B12E3A27B200411D06 /* Measure.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Measure.md; sourceTree = "<group>"; };
+		FBD0C0B22E3A27B200411D06 /* Measure.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = Measure.storyboard; sourceTree = "<group>"; };
+		FBD0C0B32E3A27B200411D06 /* MeasureViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,15 +166,6 @@
 			path = PointCloud;
 			sourceTree = "<group>";
 		};
-		1ED25C3925C7EC5000CDB5AE /* Collision */ = {
-			isa = PBXGroup;
-			children = (
-				1ED25C3F25C7EC7800CDB5AE /* CollisionViewController.swift */,
-				1ED25C3A25C7EC6500CDB5AE /* Collision.storyboard */,
-			);
-			path = Collision;
-			sourceTree = "<group>";
-		};
 		1EEE224D25A7039B00706DE8 = {
 			isa = PBXGroup;
 			children = (
@@ -225,9 +224,9 @@
 		1EF190F925C60405005064FC /* Samples */ = {
 			isa = PBXGroup;
 			children = (
+				FBD0C0B42E3A27B200411D06 /* Measure */,
 				1EF190FA25C60418005064FC /* Depth */,
 				1E2B6D5525C68D0800F76D8C /* ConfidenceMap */,
-				1ED25C3925C7EC5000CDB5AE /* Collision */,
 				1E34C94325D3237E00800E8D /* Export */,
 				1E758FB525D74113001F6BA2 /* Scan */,
 				1EC9F09026A96DF5001E955F /* PointCloud */,
@@ -255,6 +254,16 @@
 				1E9A572326AAA1180083CFDD /* Helpers.swift */,
 			);
 			path = Common;
+			sourceTree = "<group>";
+		};
+		FBD0C0B42E3A27B200411D06 /* Measure */ = {
+			isa = PBXGroup;
+			children = (
+				FBD0C0B12E3A27B200411D06 /* Measure.md */,
+				FBD0C0B22E3A27B200411D06 /* Measure.storyboard */,
+				FBD0C0B32E3A27B200411D06 /* MeasureViewController.swift */,
+			);
+			path = Measure;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -364,11 +373,12 @@
 				1EEE226625A7039C00706DE8 /* LaunchScreen.storyboard in Resources */,
 				1EF1910025C604C5005064FC /* DepthMap.storyboard in Resources */,
 				1E2B6D5F25C68D4100F76D8C /* ConfidenceMap.storyboard in Resources */,
+				FBD0C0B52E3A27B200411D06 /* Measure.storyboard in Resources */,
+				FBD0C0B62E3A27B200411D06 /* Measure.md in Resources */,
 				1EEE226325A7039C00706DE8 /* Assets.xcassets in Resources */,
 				1EF5A0D126AA1D6600E49415 /* PointCloud.storyboard in Resources */,
 				1E758FB725D74127001F6BA2 /* Scan.storyboard in Resources */,
 				1EEE226125A7039B00706DE8 /* Main.storyboard in Resources */,
-				1ED25C3B25C7EC6500CDB5AE /* Collision.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -376,6 +386,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FBD0C0BC2E3A27B200411D06 /* Measure.storyboard in Resources */,
+				FBD0C0BD2E3A27B200411D06 /* Measure.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,6 +395,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FBD0C0B92E3A27B200411D06 /* Measure.storyboard in Resources */,
+				FBD0C0BA2E3A27B200411D06 /* Measure.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,7 +409,6 @@
 			files = (
 				1E1875B425D7A89500C09A98 /* SCNGeometry+Ext.swift in Sources */,
 				1E9A572426AAA1180083CFDD /* Helpers.swift in Sources */,
-				1ED25C4025C7EC7800CDB5AE /* CollisionViewController.swift in Sources */,
 				1EEE225C25A7039B00706DE8 /* DepthMapViewController.swift in Sources */,
 				1E9A572626AAA5A80083CFDD /* PointCloudShaders.metal in Sources */,
 				1E12889C25D50CDB00661E0D /* MDLMesh+Ext.swift in Sources */,
@@ -410,6 +423,7 @@
 				1E470F9125AF932000D8D918 /* ARFrame+Ext.swift in Sources */,
 				1EEE225E25A7039B00706DE8 /* Experience.rcproject in Sources */,
 				1E59318A25D48BD2002CCCC9 /* ARMeshGeometry+Ext.swift in Sources */,
+				FBD0C0B72E3A27B200411D06 /* MeasureViewController.swift in Sources */,
 				1E34C94A25D323A700800E8D /* ExportViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -419,6 +433,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1EEE227125A7039C00706DE8 /* ExampleOfiOSLiDARTests.swift in Sources */,
+				FBD0C0BB2E3A27B200411D06 /* MeasureViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -427,6 +442,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1EEE227C25A7039C00706DE8 /* ExampleOfiOSLiDARUITests.swift in Sources */,
+				FBD0C0B82E3A27B200411D06 /* MeasureViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -587,13 +603,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = P67QP7Z567;
+				DEVELOPMENT_TEAM = NGY4J8L8N8;
 				INFOPLIST_FILE = ExampleOfiOSLiDAR/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = tokyoyoshida.app.ExampleOfiOSLiDAR;
+				PRODUCT_BUNDLE_IDENTIFIER = tokyoyoshida.app.UnmetricMeasure;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = ExampleOfiOSLiDAR/Samples/PointCloud/PointCloudShaderTypes.h;
 				SWIFT_VERSION = 5.0;
@@ -607,13 +625,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = P67QP7Z567;
+				DEVELOPMENT_TEAM = NGY4J8L8N8;
 				INFOPLIST_FILE = ExampleOfiOSLiDAR/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = tokyoyoshida.app.ExampleOfiOSLiDAR;
+				PRODUCT_BUNDLE_IDENTIFIER = tokyoyoshida.app.UnmetricMeasure;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = ExampleOfiOSLiDAR/Samples/PointCloud/PointCloudShaderTypes.h;
 				SWIFT_VERSION = 5.0;
