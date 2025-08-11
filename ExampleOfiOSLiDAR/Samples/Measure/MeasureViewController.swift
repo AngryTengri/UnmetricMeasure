@@ -15,6 +15,55 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     @IBOutlet var arView: ARView!
     let anchorName = "ball"
     
+    // Measurement unit configuration
+    private var measurementUnit: MeasurementUnitType = .londonBus
+    
+    enum MeasurementUnitType {
+        case londonBus
+        case footballField
+        case olympicPool
+        case blueWhale
+        case tennisCourt
+        case subwayCar
+        case boeing747
+        case watermelon
+        case toyotaPrius
+        case giraffe
+        case refrigerator
+        
+        var size: Float {
+            switch self {
+            case .londonBus: return 8.38        // 8.38m London double decker bus
+            case .footballField: return 109.7   // 109.7m NFL football field length
+            case .olympicPool: return 50.0      // 50m Olympic swimming pool
+            case .blueWhale: return 30.0        // 30m average blue whale length
+            case .tennisCourt: return 23.77     // 23.77m tennis court length
+            case .subwayCar: return 22.86       // 22.86m NYC subway car
+            case .boeing747: return 68.4        // 68.4m Boeing 747 wingspan
+            case .watermelon: return 0.35       // 0.35m average watermelon length
+            case .toyotaPrius: return 4.54      // 4.54m Toyota Prius length
+            case .giraffe: return 5.5           // 5.5m average giraffe height
+            case .refrigerator: return 1.8      // 1.8m standard refrigerator height
+            }
+        }
+        
+        var unitName: String {
+            switch self {
+            case .londonBus: return "bus"
+            case .footballField: return "football field"
+            case .olympicPool: return "pool"
+            case .blueWhale: return "whale"
+            case .tennisCourt: return "tennis court"
+            case .subwayCar: return "subway car"
+            case .boeing747: return "jumbo jet"
+            case .watermelon: return "watermelon"
+            case .toyotaPrius: return "Prius"
+            case .giraffe: return "giraffe"
+            case .refrigerator: return "refrigerator"
+            }
+        }
+    }
+    
     // Frame-driven update subscription
     private var updateSubscription: Cancellable?
     private var reusableBall: ModelEntity?
@@ -33,6 +82,9 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
     }()
     
     override func viewDidLoad() {
+        // Configure measurement unit based on title
+        configureMeasurementUnit()
+        
         func setARViewOptions() {
             arView.environment.sceneUnderstanding.options = []
             // Removed .occlusion to prevent ball from being hidden behind objects
@@ -118,6 +170,38 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         super.viewWillDisappear(animated)
         updateSubscription?.cancel()
         updateSubscription = nil
+    }
+    
+    // Configure measurement unit based on the view controller's title
+    private func configureMeasurementUnit() {
+        guard let title = self.title else { return }
+        
+        switch title {
+        case "London Bus Units":
+            measurementUnit = .londonBus
+        case "American Football Fields":
+            measurementUnit = .footballField
+        case "Olympic Swimming Pools":
+            measurementUnit = .olympicPool
+        case "Blue Whales":
+            measurementUnit = .blueWhale
+        case "Tennis Courts":
+            measurementUnit = .tennisCourt
+        case "Subway Cars":
+            measurementUnit = .subwayCar
+        case "Boeing 747 Jumbo Jets":
+            measurementUnit = .boeing747
+        case "Watermelons":
+            measurementUnit = .watermelon
+        case "Toyota Prius":
+            measurementUnit = .toyotaPrius
+        case "Giraffes":
+            measurementUnit = .giraffe
+        case "Standard Refrigerators":
+            measurementUnit = .refrigerator
+        default:
+            measurementUnit = .londonBus
+        }
     }
     
     // MARK: - ARSessionDelegate
@@ -264,29 +348,30 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         container.addChild(line)
 
         // Text: offset upward in container local space
-        // Convert to London bus units (8.38m per bus)
-        let busUnits = distance / 8.38
+        // Convert to selected measurement units
+        let units = distance / measurementUnit.size
+        let unitName = measurementUnit.unitName
         let text: String
         
-        if busUnits < 1.0 {
-            // Show as fraction for values less than 1 bus
-            let fraction = busUnits
+        if units < 1.0 {
+            // Show as fraction for values less than 1 unit
+            let fraction = units
             if fraction >= 0.75 {
-                text = "3/4 bus"
+                text = "3/4 \(unitName)"
             } else if fraction >= 0.67 {
-                text = "2/3 bus"
+                text = "2/3 \(unitName)"
             } else if fraction >= 0.5 {
-                text = "1/2 bus"
+                text = "1/2 \(unitName)"
             } else if fraction >= 0.33 {
-                text = "1/3 bus"
+                text = "1/3 \(unitName)"
             } else if fraction >= 0.25 {
-                text = "1/4 bus"
+                text = "1/4 \(unitName)"
             } else {
-                text = String(format: "%.2f bus", busUnits)
+                text = String(format: "%.2f \(unitName)", units)
             }
         } else {
-            // Show as decimal for values 1 bus or greater
-            text = String(format: "%.2f bus", busUnits)
+            // Show as decimal for values 1 unit or greater
+            text = String(format: "%.2f \(unitName)", units)
         }
         let textMesh = MeshResource.generateText(
             text,

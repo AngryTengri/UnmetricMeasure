@@ -24,8 +24,58 @@ struct MenuItem {
 class MenuViewModel {
     private let dataSource = [
         MenuItem (
-            title: "Measure",
-            description: "Measure objects using LiDAR raycast.",
+            title: "London Bus Units",
+            description: "Measure using the standard british double decker bus",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "American Football Fields",
+            description: "Measure using NFL football field dimensions",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Olympic Swimming Pools",
+            description: "Measure using standard 50m Olympic pool length",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Blue Whales",
+            description: "Measure using the length of the largest mammal",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Tennis Courts",
+            description: "Measure using standard tennis court dimensions",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Subway Cars",
+            description: "Measure using New York subway car length",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Boeing 747 Jumbo Jets",
+            description: "Measure using the iconic jumbo jet wingspan",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Watermelons",
+            description: "Measure using average watermelon length",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Toyota Prius",
+            description: "Measure using the hybrid car's length",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Giraffes",
+            description: "Measure using the height of the tallest mammal",
+            prefix: "Measure"
+        ),
+        MenuItem (
+            title: "Standard Refrigerators",
+            description: "Measure using typical home refrigerator height",
             prefix: "Measure"
         )
     ]
