@@ -24,34 +24,9 @@ struct MenuItem {
 class MenuViewModel {
     private let dataSource = [
         MenuItem (
-            title: "Depth Map",
-            description: "Display the depth map on the screen.",
-            prefix: "DepthMap"
-        ),
-        MenuItem (
-            title: "Confidence Map",
-            description: "Display the confidence on the screen.",
-            prefix: "ConfidenceMap"
-        ),
-        MenuItem (
-            title: "Collision",
-            description: "Collision detection of objects using LiDAR.",
-            prefix: "Collision"
-        ),
-        MenuItem (
-            title: "Export",
-            description: "Export scaned object to .obj file.",
-            prefix: "Export"
-        ),
-        MenuItem (
-            title: "Scan with Texture",
-            description: "Scan object with color texture.",
-            prefix: "Scan"
-        ),
-        MenuItem (
-            title: "Point Cloud",
-            description: "Point cloud.",
-            prefix: "PointCloud"
+            title: "Measure",
+            description: "Measure objects using LiDAR raycast.",
+            prefix: "Measure"
         )
     ]
     
