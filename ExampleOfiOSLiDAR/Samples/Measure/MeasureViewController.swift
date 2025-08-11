@@ -264,7 +264,30 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         container.addChild(line)
 
         // Text: offset upward in container local space
-        let text = String(format: "%.2f m", distance)
+        // Convert to London bus units (8.38m per bus)
+        let busUnits = distance / 8.38
+        let text: String
+        
+        if busUnits < 1.0 {
+            // Show as fraction for values less than 1 bus
+            let fraction = busUnits
+            if fraction >= 0.75 {
+                text = "3/4 bus"
+            } else if fraction >= 0.67 {
+                text = "2/3 bus"
+            } else if fraction >= 0.5 {
+                text = "1/2 bus"
+            } else if fraction >= 0.33 {
+                text = "1/3 bus"
+            } else if fraction >= 0.25 {
+                text = "1/4 bus"
+            } else {
+                text = String(format: "%.2f bus", busUnits)
+            }
+        } else {
+            // Show as decimal for values 1 bus or greater
+            text = String(format: "%.2f bus", busUnits)
+        }
         let textMesh = MeshResource.generateText(
             text,
             extrusionDepth: 0.0001,
@@ -273,6 +296,14 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
             alignment: .center,
             lineBreakMode: .byWordWrapping
         )
+        // Create white background plane for text - larger than text for visibility
+        let backgroundPlane = MeshResource.generatePlane(width: 0.12, depth: 0.025, cornerRadius: 0.003)
+        let backgroundEntity = ModelEntity(mesh: backgroundPlane, materials: [SimpleMaterial(color: .white, isMetallic: false)])
+        backgroundEntity.position = SIMD3<Float>(0, 0.02, -0.01)
+        backgroundEntity.orientation = simd_quatf()
+        backgroundEntity.components.set(BillboardComponent())
+        container.addChild(backgroundEntity)
+        
         let textEntity = ModelEntity(mesh: textMesh, materials: [unlitBlackMaterial])
         textEntity.position = SIMD3<Float>(0, 0.02, 0)
         textEntity.orientation = simd_quatf()
