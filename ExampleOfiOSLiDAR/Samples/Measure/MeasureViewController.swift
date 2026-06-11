@@ -186,6 +186,27 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
         // Fallback to asset by imageset name
         return try? TextureResource.load(named: "Guide")
     }()
+    private lazy var busTexture: TextureResource? = {
+        // MeasuringBUS.png lives in the "Bus" imageset
+        if let cg = UIImage(named: "Bus")?.cgImage {
+            return try? TextureResource.generate(from: cg, options: .init(semantic: .color))
+        }
+        return try? TextureResource.load(named: "Bus")
+    }()
+    // Material used for the dynamic measuring line: shows the bus texture (alpha respected),
+    // falling back to a solid green if the texture cannot be loaded.
+    private lazy var busLineMaterial: UnlitMaterial = {
+        var m = UnlitMaterial()
+        if let tex = busTexture {
+            m.baseColor = .texture(tex)
+        } else {
+            m.baseColor = .color(.green)
+        }
+        m.blending = .transparent(opacity: PhysicallyBasedMaterial.Opacity(floatLiteral: 1.0))
+        // Show the bus from both sides of the plane
+        m.faceCulling = .none
+        return m
+    }()
 
     // Smoothing state
     private var filteredBallPosition: SIMD3<Float>? = nil
@@ -284,7 +305,7 @@ class MeasureViewController: UIViewController, ARSessionDelegate {
             // Use a plane; set width to match the guide plane (0.1) and stretch along Z
             let baseZ: Float = 0.002
             let planeMesh = MeshResource.generatePlane(width: 0.1, depth: baseZ, cornerRadius: 0)
-            let line = ModelEntity(mesh: planeMesh, materials: [unlitGreenMaterial])
+            let line = ModelEntity(mesh: planeMesh, materials: [busLineMaterial])
             line.position = .zero
             anchor.addChild(line)
             arView.scene.addAnchor(anchor)
